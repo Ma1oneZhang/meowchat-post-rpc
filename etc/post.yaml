@@ -5,7 +5,7 @@ Log:
   Encoding: plain
   Level: debug
 Mongo:
-  URL: mongo://root:password@127.0.0.1:27017
+  URL: mongodb://root:password@127.0.0.1:27017
   DB: db
 Cache:
   - Host: 127.0.0.1:6379
