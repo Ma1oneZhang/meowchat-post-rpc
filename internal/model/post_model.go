@@ -70,6 +70,7 @@ func (m *customPostModel) FindManyByUserId(ctx context.Context, userId string, s
 	}, &options.FindOptions{
 		Skip:  &skip,
 		Limit: &count,
+		Sort:  bson.M{"createAt": -1},
 	}); err != nil {
 		return nil, 0, err
 	}
@@ -89,6 +90,7 @@ func (m *customPostModel) FindMany(ctx context.Context, skip int64, count int64)
 	opts := options.FindOptions{
 		Skip:  &skip,
 		Limit: &count,
+		Sort:  bson.M{"createAt": -1},
 	}
 	if err := m.conn.Find(ctx, &data, bson.M{}, &opts); err != nil {
 		return nil, 0, err
@@ -115,6 +117,11 @@ func (m *customPostModel) Search(ctx context.Context, keyword string, count, ski
 						},
 					},
 				},
+			},
+		},
+		"sort": map[string]any{
+			"createAt": map[string]any{
+				"order": "desc",
 			},
 		},
 	}
