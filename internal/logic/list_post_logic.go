@@ -25,7 +25,7 @@ func NewListPostLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListPost
 }
 
 func (l *ListPostLogic) ListPost(in *pb.ListPostReq) (*pb.ListPostResp, error) {
-	data, err := l.svcCtx.PostModel.FindMany(l.ctx, in.Skip, in.Count)
+	data, total, err := l.svcCtx.PostModel.FindMany(l.ctx, in.Skip, in.Count)
 	if err != nil {
 		return nil, err
 	}
@@ -33,5 +33,5 @@ func (l *ListPostLogic) ListPost(in *pb.ListPostReq) (*pb.ListPostResp, error) {
 	for _, val := range data {
 		res = append(res, common.PostTransform(val))
 	}
-	return &pb.ListPostResp{Posts: res}, nil
+	return &pb.ListPostResp{Posts: res, Total: total}, nil
 }

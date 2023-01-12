@@ -31,9 +31,9 @@ type (
 	// and implement the added methods in customPostModel.
 	PostModel interface {
 		postModel
-		FindMany(ctx context.Context, skip int64, count int64) ([]*Post, error)
-		FindManyByUserId(ctx context.Context, userId string, status int64, skip int64, count int64) ([]*Post, error)
-		Search(ctx context.Context, keyword string, count, skip int64) ([]*Post, error)
+		FindMany(ctx context.Context, skip int64, count int64) ([]*Post, int64, error)
+		FindManyByUserId(ctx context.Context, userId string, status int64, skip int64, count int64) ([]*Post, int64, error)
+		Search(ctx context.Context, keyword string, count, skip int64) ([]*Post, int64, error)
 	}
 
 	customPostModel struct {
@@ -62,29 +62,45 @@ func NewPostModel(url, db string, c cache.CacheConf, es config.ElasticsearchConf
 	}
 }
 
-func (m *customPostModel) FindManyByUserId(ctx context.Context, userId string, status int64, skip int64, count int64) ([]*Post, error) {
+func (m *customPostModel) FindManyByUserId(ctx context.Context, userId string, status int64, skip int64, count int64) ([]*Post, int64, error) {
 	var data []*Post
-	err := m.conn.Find(ctx, &data, bson.M{
+	if err := m.conn.Find(ctx, &data, bson.M{
 		"userId": userId,
 		"status": status,
 	}, &options.FindOptions{
 		Skip:  &skip,
 		Limit: &count,
+	}); err != nil {
+		return nil, 0, err
+	}
+	total, err := m.conn.CountDocuments(ctx, bson.M{
+		"userId": userId,
+		"status": status,
 	})
-	return data, err
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return data, total, err
 }
 
-func (m *customPostModel) FindMany(ctx context.Context, skip int64, count int64) ([]*Post, error) {
+func (m *customPostModel) FindMany(ctx context.Context, skip int64, count int64) ([]*Post, int64, error) {
 	var data []*Post
 	opts := options.FindOptions{
 		Skip:  &skip,
 		Limit: &count,
 	}
-	err := m.conn.Find(ctx, &data, &bson.M{}, &opts)
-	return data, err
+	if err := m.conn.Find(ctx, &data, bson.M{}, &opts); err != nil {
+		return nil, 0, err
+	}
+	total, err := m.conn.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		return nil, 0, err
+	}
+	return data, total, err
 }
 
-func (m *customPostModel) Search(ctx context.Context, keyword string, count, skip int64) ([]*Post, error) {
+func (m *customPostModel) Search(ctx context.Context, keyword string, count, skip int64) ([]*Post, int64, error) {
 	search := m.es.Search
 	query := map[string]any{
 		"from": skip,
@@ -105,7 +121,7 @@ func (m *customPostModel) Search(ctx context.Context, keyword string, count, ski
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(query); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	res, err := search(
 		search.WithIndex(PostIndexName),
@@ -113,14 +129,14 @@ func (m *customPostModel) Search(ctx context.Context, keyword string, count, ski
 		search.WithBody(&buf),
 	)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer res.Body.Close()
 
 	if res.IsError() {
 		var e map[string]interface{}
 		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-			return nil, err
+			return nil, 0, err
 		} else {
 			logx.Errorf("[%s] %s: %s",
 				res.Status(),
@@ -131,32 +147,33 @@ func (m *customPostModel) Search(ctx context.Context, keyword string, count, ski
 	}
 	var r map[string]any
 	if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	hits := r["hits"].(map[string]any)["hits"].([]any)
+	total := int64(r["hits"].(map[string]any)["total"].(map[string]any)["value"].(float64))
 	posts := make([]*Post, 0, 10)
 	for i := range hits {
 		hit := hits[i].(map[string]any)
 		post := &Post{}
 		source := hit["_source"].(map[string]any)
 		if source["createAt"], err = time.Parse("2006-01-02T15:04:05Z07:00", source["createAt"].(string)); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		if source["updateAt"], err = time.Parse("2006-01-02T15:04:05Z07:00", source["updateAt"].(string)); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		hit["_source"] = source
 		err := mapstructure.Decode(hit["_source"], post)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		oid := hit["_id"].(string)
 		id, err := primitive.ObjectIDFromHex(oid)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		post.ID = id
 		posts = append(posts, post)
 	}
-	return posts, nil
+	return posts, total, nil
 }

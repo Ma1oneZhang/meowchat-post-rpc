@@ -25,7 +25,7 @@ func NewSearchPostLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Search
 }
 
 func (l *SearchPostLogic) SearchPost(in *pb.SearchPostReq) (*pb.SearchPostResp, error) {
-	data, err := l.svcCtx.PostModel.Search(l.ctx, in.Keyword, in.Count, in.Skip)
+	data, total, err := l.svcCtx.PostModel.Search(l.ctx, in.Keyword, in.Count, in.Skip)
 	if err != nil {
 		return nil, err
 	}
@@ -33,5 +33,5 @@ func (l *SearchPostLogic) SearchPost(in *pb.SearchPostReq) (*pb.SearchPostResp, 
 	for _, val := range data {
 		res = append(res, common.PostTransform(val))
 	}
-	return &pb.SearchPostResp{Posts: res}, nil
+	return &pb.SearchPostResp{Posts: res, Total: total}, nil
 }

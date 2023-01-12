@@ -25,6 +25,7 @@ message SearchPostReq {
 
 message SearchPostResp {
   repeated Post posts = 1;
+  int64 total = 2;
 }
 
 // create a post
@@ -77,6 +78,7 @@ message ListPostReq {
 
 message ListPostResp {
   repeated Post posts = 1;
+  int64 total = 2;
 }
 
 // list posts by userId & status
@@ -89,6 +91,7 @@ message ListPostByUserIdReq{
 
 message ListPostByUserIdResp{
   repeated Post posts = 1;
+  int64 total = 2;
 }
 
 service post_rpc {
