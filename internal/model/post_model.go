@@ -120,6 +120,9 @@ func (m *customPostModel) Search(ctx context.Context, keyword string, count, ski
 			},
 		},
 		"sort": map[string]any{
+			"_score": map[string]any{
+				"order":"desc",
+			},
 			"createAt": map[string]any{
 				"order": "desc",
 			},
