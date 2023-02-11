@@ -29,7 +29,6 @@ func (l *CreatePostLogic) CreatePost(in *pb.CreatePostReq) (*pb.CreatePostResp, 
 		CoverUrl: in.CoverUrl,
 		Tags:     in.Tags,
 		UserId:   in.UserId,
-		Status:   1,
 	}
 	err := l.svcCtx.PostModel.Insert(l.ctx, post)
 	if err != nil {

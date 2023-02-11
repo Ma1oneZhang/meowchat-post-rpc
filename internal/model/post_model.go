@@ -32,7 +32,7 @@ type (
 	PostModel interface {
 		postModel
 		FindMany(ctx context.Context, skip int64, count int64) ([]*Post, int64, error)
-		FindManyByUserId(ctx context.Context, userId string, status int64, skip int64, count int64) ([]*Post, int64, error)
+		FindManyByUserId(ctx context.Context, userId string, skip int64, count int64) ([]*Post, int64, error)
 		Search(ctx context.Context, keyword string, count, skip int64) ([]*Post, int64, error)
 	}
 
@@ -62,11 +62,10 @@ func NewPostModel(url, db string, c cache.CacheConf, es config.ElasticsearchConf
 	}
 }
 
-func (m *customPostModel) FindManyByUserId(ctx context.Context, userId string, status int64, skip int64, count int64) ([]*Post, int64, error) {
+func (m *customPostModel) FindManyByUserId(ctx context.Context, userId string, skip int64, count int64) ([]*Post, int64, error) {
 	var data []*Post
 	if err := m.conn.Find(ctx, &data, bson.M{
 		"userId": userId,
-		"status": status,
 	}, &options.FindOptions{
 		Skip:  &skip,
 		Limit: &count,
@@ -76,7 +75,6 @@ func (m *customPostModel) FindManyByUserId(ctx context.Context, userId string, s
 	}
 	total, err := m.conn.CountDocuments(ctx, bson.M{
 		"userId": userId,
-		"status": status,
 	})
 	if err != nil {
 		return nil, 0, err
@@ -121,7 +119,7 @@ func (m *customPostModel) Search(ctx context.Context, keyword string, count, ski
 		},
 		"sort": map[string]any{
 			"_score": map[string]any{
-				"order":"desc",
+				"order": "desc",
 			},
 			"createAt": map[string]any{
 				"order": "desc",

@@ -13,7 +13,6 @@ type Post struct {
 	CoverUrl string             `bson:"coverUrl,omitempty"`
 	Tags     []string           `bson:"tags,omitempty"`
 	UserId   string             `bson:"userId,omitempty"`
-	Status   int64              `bson:"status,omitempty"`
 	UpdateAt time.Time          `bson:"updateAt,omitempty"`
 	CreateAt time.Time          `bson:"createAt,omitempty"`
 }

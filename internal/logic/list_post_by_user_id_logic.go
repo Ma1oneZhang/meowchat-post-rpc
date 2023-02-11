@@ -25,7 +25,7 @@ func NewListPostByUserIdLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *ListPostByUserIdLogic) ListPostByUserId(in *pb.ListPostByUserIdReq) (*pb.ListPostByUserIdResp, error) {
-	data, total, err := l.svcCtx.PostModel.FindManyByUserId(l.ctx, in.UserId, in.Status, in.Skip, in.Count)
+	data, total, err := l.svcCtx.PostModel.FindManyByUserId(l.ctx, in.UserId, in.Skip, in.Count)
 	if err != nil {
 		return nil, err
 	}

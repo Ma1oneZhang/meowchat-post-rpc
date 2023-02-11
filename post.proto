@@ -84,7 +84,6 @@ message ListPostResp {
 // list posts by userId & status
 message ListPostByUserIdReq{
   string userId = 1;
-  int64 status = 3; // -1 全部 0 审核中 1 过审 2 不过审
   int64 skip = 4;
   int64 count = 5;
 }
