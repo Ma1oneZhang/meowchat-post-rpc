@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -22,7 +23,6 @@ import (
 )
 
 const PostCollectionName = "post"
-const PostIndexName = "meowchat_post.post-alias"
 
 var _ PostModel = (*customPostModel)(nil)
 
@@ -38,7 +38,8 @@ type (
 
 	customPostModel struct {
 		*defaultPostModel
-		es *elasticsearch.Client
+		es        *elasticsearch.Client
+		indexName string
 	}
 )
 
@@ -59,6 +60,7 @@ func NewPostModel(url, db string, c cache.CacheConf, es config.ElasticsearchConf
 	return &customPostModel{
 		defaultPostModel: newDefaultPostModel(conn),
 		es:               esClient,
+		indexName:        fmt.Sprintf("%s.%s-alias", db, PostCollectionName),
 	}
 }
 
@@ -132,7 +134,7 @@ func (m *customPostModel) Search(ctx context.Context, keyword string, count, ski
 		return nil, 0, err
 	}
 	res, err := search(
-		search.WithIndex(PostIndexName),
+		search.WithIndex(m.indexName),
 		search.WithContext(ctx),
 		search.WithBody(&buf),
 	)
