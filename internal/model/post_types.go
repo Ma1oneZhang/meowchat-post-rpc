@@ -16,3 +16,14 @@ type Post struct {
 	UpdateAt time.Time          `bson:"updateAt,omitempty"`
 	CreateAt time.Time          `bson:"createAt,omitempty"`
 }
+
+const (
+	ID       = "_id"
+	Title    = "title"
+	Text     = "text"
+	CoverUrl = "coverUrl"
+	Tags     = "tags"
+	UserId   = "userId"
+	UpdateAt = "updateAt"
+	CreateAt = "createAt"
+)
