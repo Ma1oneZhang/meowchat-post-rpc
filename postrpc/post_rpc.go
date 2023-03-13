@@ -13,30 +13,28 @@ import (
 )
 
 type (
-	CreatePostReq        = pb.CreatePostReq
-	CreatePostResp       = pb.CreatePostResp
-	DeletePostReq        = pb.DeletePostReq
-	DeletePostResp       = pb.DeletePostResp
-	ListPostByUserIdReq  = pb.ListPostByUserIdReq
-	ListPostByUserIdResp = pb.ListPostByUserIdResp
-	ListPostReq          = pb.ListPostReq
-	ListPostResp         = pb.ListPostResp
-	Post                 = pb.Post
-	RetrievePostReq      = pb.RetrievePostReq
-	RetrievePostResp     = pb.RetrievePostResp
-	SearchPostReq        = pb.SearchPostReq
-	SearchPostResp       = pb.SearchPostResp
-	UpdatePostReq        = pb.UpdatePostReq
-	UpdatePostResp       = pb.UpdatePostResp
+	CreatePostReq           = pb.CreatePostReq
+	CreatePostResp          = pb.CreatePostResp
+	DeletePostReq           = pb.DeletePostReq
+	DeletePostResp          = pb.DeletePostResp
+	ListPostReq             = pb.ListPostReq
+	ListPostReq_SearchField = pb.ListPostReq_SearchField
+	ListPostResp            = pb.ListPostResp
+	Post                    = pb.Post
+	RetrievePostReq         = pb.RetrievePostReq
+	RetrievePostResp        = pb.RetrievePostResp
+	SetOfficialReq          = pb.SetOfficialReq
+	SetOfficialResp         = pb.SetOfficialResp
+	UpdatePostReq           = pb.UpdatePostReq
+	UpdatePostResp          = pb.UpdatePostResp
 
 	PostRpc interface {
-		SearchPost(ctx context.Context, in *SearchPostReq, opts ...grpc.CallOption) (*SearchPostResp, error)
 		CreatePost(ctx context.Context, in *CreatePostReq, opts ...grpc.CallOption) (*CreatePostResp, error)
 		RetrievePost(ctx context.Context, in *RetrievePostReq, opts ...grpc.CallOption) (*RetrievePostResp, error)
 		UpdatePost(ctx context.Context, in *UpdatePostReq, opts ...grpc.CallOption) (*UpdatePostResp, error)
 		DeletePost(ctx context.Context, in *DeletePostReq, opts ...grpc.CallOption) (*DeletePostResp, error)
 		ListPost(ctx context.Context, in *ListPostReq, opts ...grpc.CallOption) (*ListPostResp, error)
-		ListPostByUserId(ctx context.Context, in *ListPostByUserIdReq, opts ...grpc.CallOption) (*ListPostByUserIdResp, error)
+		SetOfficial(ctx context.Context, in *SetOfficialReq, opts ...grpc.CallOption) (*SetOfficialResp, error)
 	}
 
 	defaultPostRpc struct {
@@ -48,11 +46,6 @@ func NewPostRpc(cli zrpc.Client) PostRpc {
 	return &defaultPostRpc{
 		cli: cli,
 	}
-}
-
-func (m *defaultPostRpc) SearchPost(ctx context.Context, in *SearchPostReq, opts ...grpc.CallOption) (*SearchPostResp, error) {
-	client := pb.NewPostRpcClient(m.cli.Conn())
-	return client.SearchPost(ctx, in, opts...)
 }
 
 func (m *defaultPostRpc) CreatePost(ctx context.Context, in *CreatePostReq, opts ...grpc.CallOption) (*CreatePostResp, error) {
@@ -80,7 +73,7 @@ func (m *defaultPostRpc) ListPost(ctx context.Context, in *ListPostReq, opts ...
 	return client.ListPost(ctx, in, opts...)
 }
 
-func (m *defaultPostRpc) ListPostByUserId(ctx context.Context, in *ListPostByUserIdReq, opts ...grpc.CallOption) (*ListPostByUserIdResp, error) {
+func (m *defaultPostRpc) SetOfficial(ctx context.Context, in *SetOfficialReq, opts ...grpc.CallOption) (*SetOfficialResp, error) {
 	client := pb.NewPostRpcClient(m.cli.Conn())
-	return client.ListPostByUserId(ctx, in, opts...)
+	return client.SetOfficial(ctx, in, opts...)
 }

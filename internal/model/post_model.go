@@ -1,25 +1,27 @@
 package model
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
+	"go.mongodb.org/mongo-driver/bson"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
-	"github.com/xh-polaris/meowchat-post-rpc/internal/config"
-
 	"github.com/elastic/go-elasticsearch/v8"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/sortorder"
 	"github.com/mitchellh/mapstructure"
-	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/xh-polaris/meowchat-post-rpc/internal/config"
+	"github.com/xh-polaris/meowchat-post-rpc/internal/model/paginator"
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/monc"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const PostCollectionName = "post"
@@ -31,14 +33,16 @@ type (
 	// and implement the added methods in customPostModel.
 	PostModel interface {
 		postModel
-		FindMany(ctx context.Context, skip int64, count int64) ([]*Post, int64, error)
-		FindManyByUserId(ctx context.Context, userId string, skip int64, count int64) ([]*Post, int64, error)
-		Search(ctx context.Context, keyword string, count, skip int64) ([]*Post, int64, error)
+		FindMany(ctx context.Context, filter MongoFilter, paginator paginator.IdPaginator) ([]*Post, error)
+		Count(ctx context.Context, filter MongoFilter) (int64, error)
+		FindManyAndCount(ctx context.Context, filter MongoFilter, paginator paginator.IdPaginator) ([]*Post, int64, error)
+		Search(ctx context.Context, query []types.Query, filter EsFilter, paginator paginator.BasePaginator) ([]*Post, int64, error)
+		UpdateFlags(ctx context.Context, id string, flags map[PostFlag]bool) error
 	}
 
 	customPostModel struct {
 		*defaultPostModel
-		es        *elasticsearch.Client
+		es        *elasticsearch.TypedClient
 		indexName string
 	}
 )
@@ -46,7 +50,7 @@ type (
 // NewPostModel returns a model for the mongo.
 func NewPostModel(url, db string, c cache.CacheConf, es config.ElasticsearchConf) PostModel {
 	conn := monc.MustNewModel(url, db, PostCollectionName, c)
-	esClient, err := elasticsearch.NewClient(elasticsearch.Config{
+	esClient, err := elasticsearch.NewTypedClient(elasticsearch.Config{
 		Addresses: es.Addresses,
 		Username:  es.Username,
 		Password:  es.Password,
@@ -64,104 +68,128 @@ func NewPostModel(url, db string, c cache.CacheConf, es config.ElasticsearchConf
 	}
 }
 
-func (m *customPostModel) FindManyByUserId(ctx context.Context, userId string, skip int64, count int64) ([]*Post, int64, error) {
-	var data []*Post
-	if err := m.conn.Find(ctx, &data, bson.M{
-		"userId": userId,
-	}, &options.FindOptions{
-		Skip:  &skip,
-		Limit: &count,
-		Sort:  bson.M{"createAt": -1},
-	}); err != nil {
-		return nil, 0, err
+func (m *customPostModel) UpdateFlags(ctx context.Context, id string, flags map[PostFlag]bool) error {
+	var or, and PostFlag
+	for flag, v := range flags {
+		if v {
+			or += flag
+		} else {
+			and += flag
+		}
 	}
-	total, err := m.conn.CountDocuments(ctx, bson.M{
-		"userId": userId,
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return ErrInvalidObjectId
+	}
+	_, err = m.conn.UpdateOne(ctx, prefixPostCacheKey, bson.M{ID: oid}, bson.M{
+		"$bit": bson.M{
+			Flags: bson.M{
+				"and": ^and,
+				"or":  or,
+			},
+		},
 	})
 	if err != nil {
-		return nil, 0, err
+		return err
 	}
-
-	return data, total, err
+	return nil
 }
 
-func (m *customPostModel) FindMany(ctx context.Context, skip int64, count int64) ([]*Post, int64, error) {
-	var data []*Post
-	opts := options.FindOptions{
-		Skip:  &skip,
-		Limit: &count,
-		Sort:  bson.M{"createAt": -1},
-	}
-	if err := m.conn.Find(ctx, &data, bson.M{}, &opts); err != nil {
-		return nil, 0, err
-	}
-	total, err := m.conn.CountDocuments(ctx, bson.M{})
+func (m *customPostModel) FindMany(ctx context.Context, filter MongoFilter, paginator paginator.IdPaginator) ([]*Post, error) {
+	f := filter.toBson()
+	opts, err := paginator.GenQuery(f)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
-	return data, total, err
+
+	var data []*Post
+	if err := m.conn.Find(ctx, &data, f, opts); err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
-func (m *customPostModel) Search(ctx context.Context, keyword string, count, skip int64) ([]*Post, int64, error) {
-	search := m.es.Search
-	query := map[string]any{
-		"from": skip,
-		"size": count,
-		"query": map[string]any{
-			"bool": map[string]any{
-				"must": []any{
-					map[string]any{
-						"multi_match": map[string]any{
-							"query":  keyword,
-							"fields": []string{"title", "text", "tags"},
-						},
-					},
+func (m *customPostModel) Count(ctx context.Context, filter MongoFilter) (int64, error) {
+	return m.conn.CountDocuments(ctx, filter.toBson())
+}
+
+func (m *customPostModel) FindManyAndCount(ctx context.Context, filter MongoFilter, paginator paginator.IdPaginator) ([]*Post, int64, error) {
+	var posts []*Post
+	var total int64
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	c := make(chan error)
+	go func() {
+		defer wg.Done()
+		var err error
+		posts, err = m.FindMany(ctx, filter, paginator)
+		if err != nil {
+			c <- err
+			return
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		var err error
+		total, err = m.Count(ctx, filter)
+		if err != nil {
+			c <- err
+			return
+		}
+	}()
+	go func() {
+		wg.Wait()
+		defer close(c)
+	}()
+	if err := <-c; err != nil {
+		return nil, 0, err
+	}
+	return posts, total, nil
+}
+
+func (m *customPostModel) Search(ctx context.Context, query []types.Query, filter EsFilter, p paginator.BasePaginator) ([]*Post, int64, error) {
+	s := m.es.Search().From(int(*p.Offset)).Size(int(*p.Limit)).Index(m.indexName)
+	res, err := s.Request(&search.Request{
+		Query: &types.Query{
+			Bool: &types.BoolQuery{
+				Must:   query,
+				Filter: filter.toEsQuery(),
+			},
+		},
+		Sort: []types.SortCombinations{
+			types.SortOptions{
+				SortOptions: map[string]types.FieldSort{
+					"_score": {Order: &sortorder.Desc},
+					CreateAt: {Order: &sortorder.Desc},
 				},
 			},
 		},
-		"sort": map[string]any{
-			"_score": map[string]any{
-				"order": "desc",
-			},
-			"createAt": map[string]any{
-				"order": "desc",
-			},
-		},
-	}
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(query); err != nil {
-		return nil, 0, err
-	}
-	res, err := search(
-		search.WithIndex(m.indexName),
-		search.WithContext(ctx),
-		search.WithBody(&buf),
-	)
+	}).Do(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer res.Body.Close()
 
-	if res.IsError() {
+	if res.StatusCode >= 400 {
 		var e map[string]interface{}
 		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
 			return nil, 0, err
 		} else {
-			logx.Errorf("[%s] %s: %s",
-				res.Status(),
+			return nil, 0, errors.Errorf("[%s] %s: %s",
+				res.Status,
 				e["error"].(map[string]interface{})["type"],
 				e["error"].(map[string]interface{})["reason"],
 			)
 		}
 	}
+
 	var r map[string]any
 	if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
 		return nil, 0, err
 	}
 	hits := r["hits"].(map[string]any)["hits"].([]any)
 	total := int64(r["hits"].(map[string]any)["total"].(map[string]any)["value"].(float64))
-	posts := make([]*Post, 0, 10)
+	posts := make([]*Post, 0, len(hits))
 	for i := range hits {
 		hit := hits[i].(map[string]any)
 		post := &Post{}

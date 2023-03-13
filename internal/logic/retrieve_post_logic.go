@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/xh-polaris/meowchat-post-rpc/errorx"
-	"github.com/xh-polaris/meowchat-post-rpc/internal/common"
+	"github.com/xh-polaris/meowchat-post-rpc/internal/convertor"
 	"github.com/xh-polaris/meowchat-post-rpc/internal/model"
 	"github.com/xh-polaris/meowchat-post-rpc/internal/svc"
 	"github.com/xh-polaris/meowchat-post-rpc/pb"
@@ -35,5 +35,5 @@ func (l *RetrievePostLogic) RetrievePost(in *pb.RetrievePostReq) (*pb.RetrievePo
 	default:
 		return nil, err
 	}
-	return &pb.RetrievePostResp{Post: common.PostTransform(data)}, nil
+	return &pb.RetrievePostResp{Post: convertor.ConvertPost(data)}, nil
 }

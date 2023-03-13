@@ -22,11 +22,6 @@ func NewPostRpcServer(svcCtx *svc.ServiceContext) *PostRpcServer {
 	}
 }
 
-func (s *PostRpcServer) SearchPost(ctx context.Context, in *pb.SearchPostReq) (*pb.SearchPostResp, error) {
-	l := logic.NewSearchPostLogic(ctx, s.svcCtx)
-	return l.SearchPost(in)
-}
-
 func (s *PostRpcServer) CreatePost(ctx context.Context, in *pb.CreatePostReq) (*pb.CreatePostResp, error) {
 	l := logic.NewCreatePostLogic(ctx, s.svcCtx)
 	return l.CreatePost(in)
@@ -52,7 +47,7 @@ func (s *PostRpcServer) ListPost(ctx context.Context, in *pb.ListPostReq) (*pb.L
 	return l.ListPost(in)
 }
 
-func (s *PostRpcServer) ListPostByUserId(ctx context.Context, in *pb.ListPostByUserIdReq) (*pb.ListPostByUserIdResp, error) {
-	l := logic.NewListPostByUserIdLogic(ctx, s.svcCtx)
-	return l.ListPostByUserId(in)
+func (s *PostRpcServer) SetOfficial(ctx context.Context, in *pb.SetOfficialReq) (*pb.SetOfficialResp, error) {
+	l := logic.NewSetOfficialLogic(ctx, s.svcCtx)
+	return l.SetOfficial(in)
 }
