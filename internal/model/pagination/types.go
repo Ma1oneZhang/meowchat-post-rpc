@@ -35,6 +35,9 @@ func (p *PaginationOptions) EnsureSafe() {
 	if p.Limit == nil {
 		p.Limit = &defaultPageSize
 	}
+	if p.Offset == nil {
+		p.Offset = new(int64)
+	}
 }
 
 type CachePaginator struct {
