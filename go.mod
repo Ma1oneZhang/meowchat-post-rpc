@@ -4,7 +4,10 @@ go 1.18
 
 require (
 	github.com/elastic/go-elasticsearch/v8 v8.5.0
+	github.com/google/uuid v1.3.0
+	github.com/jinzhu/copier v0.3.5
 	github.com/mitchellh/mapstructure v1.1.2
+	github.com/pkg/errors v0.9.1
 	github.com/zeromicro/go-zero v1.5.0
 	go.mongodb.org/mongo-driver v1.11.2
 	google.golang.org/grpc v1.53.0
@@ -51,7 +54,6 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/openzipkin/zipkin-go v0.4.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.7 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect

@@ -3,7 +3,7 @@ package logic
 import (
 	"context"
 	"github.com/xh-polaris/meowchat-post-rpc/errorx"
-	"github.com/xh-polaris/meowchat-post-rpc/internal/model"
+	"github.com/xh-polaris/meowchat-post-rpc/internal/model/post"
 	"github.com/xh-polaris/meowchat-post-rpc/internal/svc"
 	"github.com/xh-polaris/meowchat-post-rpc/pb"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -29,7 +29,7 @@ func (l *UpdatePostLogic) UpdatePost(in *pb.UpdatePostReq) (*pb.UpdatePostResp, 
 	if err != nil {
 		return nil, errorx.ErrInvalidObjectId
 	}
-	err = l.svcCtx.PostModel.Update(l.ctx, &model.Post{
+	err = l.svcCtx.PostModel.Update(l.ctx, &post.Post{
 		ID:       oid,
 		Title:    in.Title,
 		Text:     in.Text,

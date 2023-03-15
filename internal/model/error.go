@@ -7,6 +7,7 @@ import (
 )
 
 var (
-	ErrNotFound        = mon.ErrNotFound
-	ErrInvalidObjectId = errorx.ErrInvalidObjectId
+	ErrNotFound              = mon.ErrNotFound
+	ErrInvalidObjectId       = errorx.ErrInvalidObjectId
+	ErrPaginatorTokenExpired = errorx.ErrPaginatorTokenExpired
 )

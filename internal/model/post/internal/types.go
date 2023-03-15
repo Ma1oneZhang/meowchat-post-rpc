@@ -1,4 +1,4 @@
-package model
+package internal
 
 import (
 	"time"
@@ -7,8 +7,8 @@ import (
 )
 
 type Post struct {
-	ID       primitive.ObjectID `bson:"_id,omitempty"`
-	Title    string             `bson:"title,omitempty"`
+	ID       primitive.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
+	Title    string             `bson:"title,omitempty" `
 	Text     string             `bson:"text,omitempty"`
 	CoverUrl string             `bson:"coverUrl,omitempty"`
 	Tags     []string           `bson:"tags,omitempty"`
@@ -16,6 +16,8 @@ type Post struct {
 	Flags    *PostFlag          `bson:"flags,omitempty"`
 	UpdateAt time.Time          `bson:"updateAt,omitempty"`
 	CreateAt time.Time          `bson:"createAt,omitempty"`
+	// 仅ES查询时使用
+	Score_ float64 `bson:"_score,omitempty" json:"_score,omitempty"`
 }
 
 const (
@@ -36,18 +38,23 @@ const (
 	OfficialFlag = 1 << 0
 )
 
-func (f *PostFlag) SetOfficial(b bool) *PostFlag {
+func (f *PostFlag) SetFlag(flag PostFlag, b bool) *PostFlag {
 	if f == nil {
 		f = new(PostFlag)
 	}
 	if b {
-		*f |= OfficialFlag
+		*f |= flag
 	} else {
-		*f &= ^OfficialFlag
+		*f &= ^flag
 	}
 	return f
 }
 
-func (f *PostFlag) GetOfficial() bool {
-	return f != nil && (*f&OfficialFlag) > 0
+func (f *PostFlag) GetFlag(flag PostFlag) bool {
+	return f != nil && (*f&flag) > 0
 }
+
+const (
+	IdSorter = iota
+	ScoreSorter
+)

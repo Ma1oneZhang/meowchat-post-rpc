@@ -2,8 +2,7 @@ package logic
 
 import (
 	"context"
-
-	"github.com/xh-polaris/meowchat-post-rpc/internal/model"
+	"github.com/xh-polaris/meowchat-post-rpc/internal/model/post"
 	"github.com/xh-polaris/meowchat-post-rpc/internal/svc"
 	"github.com/xh-polaris/meowchat-post-rpc/pb"
 
@@ -25,8 +24,8 @@ func NewSetOfficialLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SetOf
 }
 
 func (l *SetOfficialLogic) SetOfficial(in *pb.SetOfficialReq) (*pb.SetOfficialResp, error) {
-	err := l.svcCtx.PostModel.UpdateFlags(l.ctx, in.PostId, map[model.PostFlag]bool{
-		model.OfficialFlag: !in.IsRemove,
+	err := l.svcCtx.PostModel.UpdateFlags(l.ctx, in.PostId, map[post.Flag]bool{
+		post.OfficialFlag: !in.IsRemove,
 	})
 	if err != nil {
 		return nil, err
