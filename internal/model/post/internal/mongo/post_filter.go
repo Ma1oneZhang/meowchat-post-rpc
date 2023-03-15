@@ -31,10 +31,10 @@ func (f *PostFilter) toBson() bson.M {
 }
 
 func (f *PostFilter) CheckFlags() {
-	if f.MustFlags != nil {
+	if f.MustFlags != nil && *f.MustFlags != 0 {
 		f.m[internal.Flags] = bson.M{"$bitsAllSet": *f.MustFlags}
 	}
-	if f.MustNotFlags != nil {
+	if f.MustNotFlags != nil && *f.MustNotFlags != 0 {
 		or, exist := f.m["$or"]
 		if !exist {
 			or = bson.A{}

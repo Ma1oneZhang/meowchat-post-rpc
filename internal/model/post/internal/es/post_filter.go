@@ -46,7 +46,7 @@ func (f *postFilter) CheckFlags() {
 			},
 		})
 	}
-	if f.MustNotFlags != nil {
+	if f.MustNotFlags != nil && *f.MustNotFlags != 0 {
 		f.q = append(f.q, types.Query{
 			//TODO 也许会造成潜在的性能风险
 			Script: &types.ScriptQuery{
