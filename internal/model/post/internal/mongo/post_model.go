@@ -120,7 +120,8 @@ func (m *customPostModel) FindManyAndCount(ctx context.Context, fopts *internal.
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	c := make(chan error)
-
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	go func() {
 		defer wg.Done()
 		var err error

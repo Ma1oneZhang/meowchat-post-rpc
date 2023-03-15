@@ -32,9 +32,9 @@ func (f *postFilter) toEsQuery() []types.Query {
 }
 
 func (f *postFilter) CheckFlags() {
-	if f.MustFlags != nil {
+	if f.MustFlags != nil && *f.MustFlags != 0 {
 		f.q = append(f.q, types.Query{
-			// 也许会造成潜在的性能风险
+			//TODO 也许会造成潜在的性能风险
 			Script: &types.ScriptQuery{
 				Script: types.InlineScript{
 					Source: fmt.Sprintf("doc['%s'].size() != 0 && "+
@@ -48,7 +48,7 @@ func (f *postFilter) CheckFlags() {
 	}
 	if f.MustNotFlags != nil {
 		f.q = append(f.q, types.Query{
-			// 也许会造成潜在的性能风险
+			//TODO 也许会造成潜在的性能风险
 			Script: &types.ScriptQuery{
 				Script: types.InlineScript{
 					Source: fmt.Sprintf("doc['%s'].size() == 0 || "+
