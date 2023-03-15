@@ -35,7 +35,7 @@ func (s *IdSorter) MakeSortOptions(filter bson.M, backward bool) (bson.M, error)
 		}
 	}
 
-	sort := bson.M{}
+	var sort bson.M
 	if backward {
 		filter["_id"] = bson.M{"$gt": id}
 		sort = bson.M{"_id": 1}

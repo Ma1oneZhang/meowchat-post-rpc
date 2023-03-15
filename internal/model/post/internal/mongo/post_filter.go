@@ -40,8 +40,7 @@ func (f *PostFilter) CheckFlags() {
 			or = bson.A{}
 		}
 
-		arr := or.(bson.A)
-		arr = append(arr, bson.M{
+		_ = append(or.(bson.A), bson.M{
 			internal.Flags: bson.M{
 				"$bitsAllClear": *f.MustNotFlags},
 		}, bson.M{
