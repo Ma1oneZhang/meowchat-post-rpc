@@ -19,4 +19,9 @@ type Config struct {
 		DB  string
 	}
 	Elasticsearch ElasticsearchConf
+	RocketMq struct {
+		URL []string
+		Retry int
+		GroupName string
+	}
 }

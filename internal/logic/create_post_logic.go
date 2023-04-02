@@ -3,6 +3,7 @@ package logic
 import (
 	"context"
 	"github.com/xh-polaris/meowchat-post-rpc/internal/model/post"
+	"github.com/xh-polaris/meowchat-post-rpc/internal/scheduled"
 	"github.com/xh-polaris/meowchat-post-rpc/internal/svc"
 	"github.com/xh-polaris/meowchat-post-rpc/pb"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -34,5 +35,6 @@ func (l *CreatePostLogic) CreatePost(in *pb.CreatePostReq) (*pb.CreatePostResp, 
 	if err != nil {
 		return nil, err
 	}
+	go scheduled.SendUrlUsedMessageToSts(&l.svcCtx.Config, &[]string{in.CoverUrl})
 	return &pb.CreatePostResp{PostId: p.ID.Hex()}, nil
 }
