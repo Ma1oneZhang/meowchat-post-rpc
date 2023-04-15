@@ -24,7 +24,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-const PostCollectionName = "post"
 const prefixPostPaginatorKey = "cache:paginator:post:"
 
 type (
@@ -54,7 +53,7 @@ func NewPostModel(db string, es config.ElasticsearchConf, c cache.CacheConf) Pos
 	}
 	return &defaultPostModel{
 		es:             esClient,
-		indexName:      fmt.Sprintf("%s.%s-alias", db, PostCollectionName),
+		indexName:      fmt.Sprintf("%s.%s-alias", db, internal.PostCollectionName),
 		paginatorCache: cache.New(c, syncx.NewSingleFlight(), cache.NewStat("paginator-es"), model.ErrPaginatorTokenExpired),
 	}
 }

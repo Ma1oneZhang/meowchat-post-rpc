@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/elastic/go-elasticsearch/v8 v8.7.0
 	github.com/mitchellh/mapstructure v1.1.2
-	github.com/xh-polaris/paginator-go v1.0.0
+	github.com/xh-polaris/paginator-go v1.0.1
 	github.com/zeromicro/go-zero v1.5.1
 	go.mongodb.org/mongo-driver v1.11.4
 	google.golang.org/grpc v1.54.0

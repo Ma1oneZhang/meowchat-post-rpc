@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/xh-polaris/meowchat-post-rpc/internal/model"
 	"github.com/xh-polaris/meowchat-post-rpc/internal/model/post/internal"
@@ -17,39 +18,40 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-const PostCollectionName = "post"
 const prefixPostPaginatorKey = "cache:paginator:post:"
-
-var _ PostMongoModel = (*customPostModel)(nil)
+const prefixPostCacheKey = "cache:post:"
 
 type (
 	// PostMongoModel is an interface to be customized, add more methods here,
-	// and implement the added methods in customPostModel.
+	// and implement the added methods in defaultPostModel.
 	PostMongoModel interface {
-		postModel
+		Insert(ctx context.Context, data *internal.Post) error
+		FindOne(ctx context.Context, id string) (*internal.Post, error)
+		Update(ctx context.Context, data *internal.Post) error
+		Delete(ctx context.Context, id string) error
 		FindMany(ctx context.Context, fopts *internal.FilterOptions, popts *paginator.PaginationOptions, sorter int64) ([]*internal.Post, error)
 		Count(ctx context.Context, fopts *internal.FilterOptions) (int64, error)
 		FindManyAndCount(ctx context.Context, fopts *internal.FilterOptions, popts *paginator.PaginationOptions, sorter int64) ([]*internal.Post, int64, error)
 		UpdateFlags(ctx context.Context, id string, flags map[internal.PostFlag]bool) error
 	}
 
-	customPostModel struct {
-		*defaultPostModel
+	defaultPostModel struct {
+		conn           *monc.Model
 		paginatorCache cache.Cache
 	}
 )
 
 // NewPostModel returns a model for the mongo.
 func NewPostModel(url, db string, c cache.CacheConf) PostMongoModel {
-	conn := monc.MustNewModel(url, db, PostCollectionName, c)
+	conn := monc.MustNewModel(url, db, internal.PostCollectionName, c)
 
-	return &customPostModel{
-		defaultPostModel: newDefaultPostModel(conn),
-		paginatorCache:   cache.New(c, syncx.NewSingleFlight(), cache.NewStat("paginator-mongo"), model.ErrPaginatorTokenExpired),
+	return &defaultPostModel{
+		conn:           conn,
+		paginatorCache: cache.New(c, syncx.NewSingleFlight(), cache.NewStat("paginator-mongo"), model.ErrPaginatorTokenExpired),
 	}
 }
 
-func (m *customPostModel) UpdateFlags(ctx context.Context, id string, flags map[internal.PostFlag]bool) error {
+func (m *defaultPostModel) UpdateFlags(ctx context.Context, id string, flags map[internal.PostFlag]bool) error {
 	var or, and internal.PostFlag
 	for flag, v := range flags {
 		if v {
@@ -76,7 +78,7 @@ func (m *customPostModel) UpdateFlags(ctx context.Context, id string, flags map[
 	return nil
 }
 
-func (m *customPostModel) FindMany(ctx context.Context, fopts *internal.FilterOptions, popts *paginator.PaginationOptions, sorter int64) ([]*internal.Post, error) {
+func (m *defaultPostModel) FindMany(ctx context.Context, fopts *internal.FilterOptions, popts *paginator.PaginationOptions, sorter int64) ([]*internal.Post, error) {
 	p := mongop.NewMongoPaginator(paginator.NewCacheStore(m.paginatorCache, Sorters[sorter], prefixPostPaginatorKey), popts)
 
 	filter := MakeBsonFilter(fopts)
@@ -109,12 +111,12 @@ func (m *customPostModel) FindMany(ctx context.Context, fopts *internal.FilterOp
 	return data, nil
 }
 
-func (m *customPostModel) Count(ctx context.Context, filter *internal.FilterOptions) (int64, error) {
+func (m *defaultPostModel) Count(ctx context.Context, filter *internal.FilterOptions) (int64, error) {
 	f := MakeBsonFilter(filter)
 	return m.conn.CountDocuments(ctx, f)
 }
 
-func (m *customPostModel) FindManyAndCount(ctx context.Context, fopts *internal.FilterOptions, popts *paginator.PaginationOptions, sorter int64) ([]*internal.Post, int64, error) {
+func (m *defaultPostModel) FindManyAndCount(ctx context.Context, fopts *internal.FilterOptions, popts *paginator.PaginationOptions, sorter int64) ([]*internal.Post, int64, error) {
 	var posts []*internal.Post
 	var total int64
 	wg := sync.WaitGroup{}
@@ -148,4 +150,52 @@ func (m *customPostModel) FindManyAndCount(ctx context.Context, fopts *internal.
 		return nil, 0, err
 	}
 	return posts, total, nil
+}
+
+func (m *defaultPostModel) Insert(ctx context.Context, data *internal.Post) error {
+	if data.ID.IsZero() {
+		data.ID = primitive.NewObjectID()
+		data.CreateAt = time.Now()
+		data.UpdateAt = time.Now()
+	}
+
+	key := prefixPostCacheKey + data.ID.Hex()
+	_, err := m.conn.InsertOne(ctx, key, data)
+	return err
+}
+
+func (m *defaultPostModel) FindOne(ctx context.Context, id string) (*internal.Post, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, model.ErrInvalidObjectId
+	}
+
+	var data internal.Post
+	key := prefixPostCacheKey + id
+	err = m.conn.FindOne(ctx, key, &data, bson.M{internal.ID: oid})
+	switch err {
+	case nil:
+		return &data, nil
+	case monc.ErrNotFound:
+		return nil, model.ErrNotFound
+	default:
+		return nil, err
+	}
+}
+
+func (m *defaultPostModel) Update(ctx context.Context, data *internal.Post) error {
+	data.UpdateAt = time.Now()
+	key := prefixPostCacheKey + data.ID.Hex()
+	_, err := m.conn.UpdateOne(ctx, key, bson.M{internal.ID: data.ID}, bson.M{"$set": data})
+	return err
+}
+
+func (m *defaultPostModel) Delete(ctx context.Context, id string) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return model.ErrInvalidObjectId
+	}
+	key := prefixPostCacheKey + id
+	_, err = m.conn.DeleteOne(ctx, key, bson.M{internal.ID: oid})
+	return err
 }
