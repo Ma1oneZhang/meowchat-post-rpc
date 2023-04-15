@@ -1,8 +1,8 @@
 package es
 
 import (
-	"github.com/xh-polaris/meowchat-post-rpc/internal/model/pagination/esp"
 	"github.com/xh-polaris/meowchat-post-rpc/internal/model/post/internal"
+	"github.com/xh-polaris/paginator-go/esp"
 	"math"
 	"time"
 

@@ -5,9 +5,9 @@ import (
 	"sync"
 
 	"github.com/xh-polaris/meowchat-post-rpc/internal/model"
-	"github.com/xh-polaris/meowchat-post-rpc/internal/model/pagination"
-	"github.com/xh-polaris/meowchat-post-rpc/internal/model/pagination/mongop"
 	"github.com/xh-polaris/meowchat-post-rpc/internal/model/post/internal"
+	"github.com/xh-polaris/paginator-go"
+	"github.com/xh-polaris/paginator-go/mongop"
 
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/monc"
@@ -27,9 +27,9 @@ type (
 	// and implement the added methods in customPostModel.
 	PostMongoModel interface {
 		postModel
-		FindMany(ctx context.Context, fopts *internal.FilterOptions, popts *pagination.PaginationOptions, sorter int64) ([]*internal.Post, error)
+		FindMany(ctx context.Context, fopts *internal.FilterOptions, popts *paginator.PaginationOptions, sorter int64) ([]*internal.Post, error)
 		Count(ctx context.Context, fopts *internal.FilterOptions) (int64, error)
-		FindManyAndCount(ctx context.Context, fopts *internal.FilterOptions, popts *pagination.PaginationOptions, sorter int64) ([]*internal.Post, int64, error)
+		FindManyAndCount(ctx context.Context, fopts *internal.FilterOptions, popts *paginator.PaginationOptions, sorter int64) ([]*internal.Post, int64, error)
 		UpdateFlags(ctx context.Context, id string, flags map[internal.PostFlag]bool) error
 	}
 
@@ -76,11 +76,11 @@ func (m *customPostModel) UpdateFlags(ctx context.Context, id string, flags map[
 	return nil
 }
 
-func (m *customPostModel) FindMany(ctx context.Context, fopts *internal.FilterOptions, popts *pagination.PaginationOptions, sorter int64) ([]*internal.Post, error) {
-	p := mongop.NewMongoPaginator(m.paginatorCache, Sorters[sorter], popts)
+func (m *customPostModel) FindMany(ctx context.Context, fopts *internal.FilterOptions, popts *paginator.PaginationOptions, sorter int64) ([]*internal.Post, error) {
+	p := mongop.NewMongoPaginator(paginator.NewCacheStore(m.paginatorCache, Sorters[sorter], prefixPostPaginatorKey), popts)
 
 	filter := MakeBsonFilter(fopts)
-	sort, err := p.MakeSortOptions(ctx, prefixPostPaginatorKey, filter)
+	sort, err := p.MakeSortOptions(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (m *customPostModel) FindMany(ctx context.Context, fopts *internal.FilterOp
 		}
 	}
 	if len(data) > 0 {
-		err = p.StoreSorter(ctx, prefixPostPaginatorKey, data[0], data[len(data)-1])
+		err = p.StoreSorter(ctx, data[0], data[len(data)-1])
 		if err != nil {
 			return nil, err
 		}
@@ -114,7 +114,7 @@ func (m *customPostModel) Count(ctx context.Context, filter *internal.FilterOpti
 	return m.conn.CountDocuments(ctx, f)
 }
 
-func (m *customPostModel) FindManyAndCount(ctx context.Context, fopts *internal.FilterOptions, popts *pagination.PaginationOptions, sorter int64) ([]*internal.Post, int64, error) {
+func (m *customPostModel) FindManyAndCount(ctx context.Context, fopts *internal.FilterOptions, popts *paginator.PaginationOptions, sorter int64) ([]*internal.Post, int64, error) {
 	var posts []*internal.Post
 	var total int64
 	wg := sync.WaitGroup{}

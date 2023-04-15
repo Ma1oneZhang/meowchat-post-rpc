@@ -2,11 +2,12 @@ package logic
 
 import (
 	"context"
+
 	"github.com/xh-polaris/meowchat-post-rpc/internal/convertor"
-	"github.com/xh-polaris/meowchat-post-rpc/internal/model/pagination"
 	"github.com/xh-polaris/meowchat-post-rpc/internal/model/post"
 	"github.com/xh-polaris/meowchat-post-rpc/internal/svc"
 	"github.com/xh-polaris/meowchat-post-rpc/pb"
+	"github.com/xh-polaris/paginator-go"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -35,7 +36,7 @@ func (l *ListPostLogic) ListPost(in *pb.ListPostReq) (*pb.ListPostResp, error) {
 		OnlyUserId:   in.OnlyUserId,
 		OnlyOfficial: in.OnlyOfficial,
 	}
-	p := &pagination.PaginationOptions{
+	p := &paginator.PaginationOptions{
 		Limit:     in.Limit,
 		Offset:    in.Offset,
 		Backward:  in.Backward,
@@ -60,7 +61,9 @@ func (l *ListPostLogic) ListPost(in *pb.ListPostReq) (*pb.ListPostResp, error) {
 	}
 
 	resp.Total = total
-	resp.Token = *p.LastToken
+	if p.LastToken != nil {
+		resp.Token = *p.LastToken
+	}
 	resp.Posts = make([]*pb.Post, 0, len(posts))
 	for _, post_ := range posts {
 		resp.Posts = append(resp.Posts, convertor.ConvertPost(post_))
