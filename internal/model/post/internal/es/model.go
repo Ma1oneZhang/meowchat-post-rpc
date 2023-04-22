@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/core/count"
 	"log"
 	"net/http"
 	"time"
@@ -29,6 +30,7 @@ const prefixPostPaginatorKey = "cache:paginator:post:"
 type (
 	PostEsModel interface {
 		Search(ctx context.Context, query []types.Query, fopts *internal.FilterOptions, popts *paginator.PaginationOptions, sorter int64) ([]*internal.Post, int64, error)
+		CountWithQuery(ctx context.Context, query []types.Query, fopts *internal.FilterOptions) (int64, error)
 	}
 
 	defaultPostModel struct {
@@ -56,6 +58,23 @@ func NewPostModel(db string, es config.ElasticsearchConf, c cache.CacheConf) Pos
 		indexName:      fmt.Sprintf("%s.%s-alias", db, internal.PostCollectionName),
 		paginatorCache: cache.New(c, syncx.NewSingleFlight(), cache.NewStat("paginator-es"), model.ErrPaginatorTokenExpired),
 	}
+}
+
+func (m *defaultPostModel) CountWithQuery(ctx context.Context, query []types.Query, fopts *internal.FilterOptions) (int64, error) {
+	filter := newPostFilter(fopts)
+	res, err := m.es.Count().Index(m.indexName).Request(&count.Request{
+		Query: &types.Query{
+			Bool: &types.BoolQuery{
+				Must:   query,
+				Filter: filter,
+			},
+		},
+	}).Do(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return res.Count, nil
 }
 
 func (m *defaultPostModel) Search(ctx context.Context, query []types.Query, fopts *internal.FilterOptions, popts *paginator.PaginationOptions, sorter int64) ([]*internal.Post, int64, error) {

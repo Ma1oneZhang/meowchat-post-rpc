@@ -33,14 +33,14 @@ func (l *ListPostLogic) ListPost(in *pb.ListPostReq) (*pb.ListPostResp, error) {
 	var err error
 
 	filter := &post.FilterOptions{
-		OnlyUserId:   in.OnlyUserId,
-		OnlyOfficial: in.OnlyOfficial,
+		OnlyUserId:   in.FilterOptions.OnlyUserId,
+		OnlyOfficial: in.FilterOptions.OnlyOfficial,
 	}
 	p := &paginator.PaginationOptions{
-		Limit:     in.Limit,
-		Offset:    in.Offset,
-		Backward:  in.Backward,
-		LastToken: in.LastToken,
+		Limit:     in.PaginationOptions.Limit,
+		Offset:    in.PaginationOptions.Offset,
+		Backward:  in.PaginationOptions.Backward,
+		LastToken: in.PaginationOptions.LastToken,
 	}
 
 	if in.SearchOptions == nil {
@@ -49,10 +49,10 @@ func (l *ListPostLogic) ListPost(in *pb.ListPostReq) (*pb.ListPostResp, error) {
 			return nil, err
 		}
 	} else {
-		switch o := in.SearchOptions.(type) {
-		case *pb.ListPostReq_AllFieldsKey:
+		switch o := in.SearchOptions.Query.(type) {
+		case *pb.SearchOptions_AllFieldsKey:
 			posts, total, err = l.svcCtx.PostModel.Search(l.ctx, post.ConvertAllFieldsSearchQuery(o), filter, p, post.ScoreSorter)
-		case *pb.ListPostReq_MultiFieldsKey:
+		case *pb.SearchOptions_MultiFieldsKey:
 			posts, total, err = l.svcCtx.PostModel.Search(l.ctx, post.ConvertMultiFieldsSearchQuery(o), filter, p, post.ScoreSorter)
 		}
 		if err != nil {

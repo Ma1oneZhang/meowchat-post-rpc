@@ -47,6 +47,11 @@ func (s *PostRpcServer) ListPost(ctx context.Context, in *pb.ListPostReq) (*pb.L
 	return l.ListPost(in)
 }
 
+func (s *PostRpcServer) CountPost(ctx context.Context, in *pb.CountPostReq) (*pb.CountPostResp, error) {
+	l := logic.NewCountPostLogic(ctx, s.svcCtx)
+	return l.CountPost(in)
+}
+
 func (s *PostRpcServer) SetOfficial(ctx context.Context, in *pb.SetOfficialReq) (*pb.SetOfficialResp, error) {
 	l := logic.NewSetOfficialLogic(ctx, s.svcCtx)
 	return l.SetOfficial(in)
