@@ -26,22 +26,37 @@ func NewListPostLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListPost
 	}
 }
 
+func parseFilter(fopts *pb.FilterOptions) *post.FilterOptions {
+	if fopts != nil {
+		return &post.FilterOptions{
+			OnlyUserId:   fopts.OnlyUserId,
+			OnlyOfficial: fopts.OnlyOfficial,
+		}
+	}
+	return &post.FilterOptions{}
+}
+
+func parsePaginator(popts *pb.PaginationOptions) *paginator.PaginationOptions {
+	if popts != nil {
+		return &paginator.PaginationOptions{
+			Limit:     popts.Limit,
+			Offset:    popts.Offset,
+			Backward:  popts.Backward,
+			LastToken: popts.LastToken,
+		}
+	}
+	return &paginator.PaginationOptions{}
+}
+
 func (l *ListPostLogic) ListPost(in *pb.ListPostReq) (*pb.ListPostResp, error) {
 	resp := new(pb.ListPostResp)
 	var posts []*post.Post
 	var total int64
 	var err error
 
-	filter := &post.FilterOptions{
-		OnlyUserId:   in.FilterOptions.OnlyUserId,
-		OnlyOfficial: in.FilterOptions.OnlyOfficial,
-	}
-	p := &paginator.PaginationOptions{
-		Limit:     in.PaginationOptions.Limit,
-		Offset:    in.PaginationOptions.Offset,
-		Backward:  in.PaginationOptions.Backward,
-		LastToken: in.PaginationOptions.LastToken,
-	}
+	filter := parseFilter(in.FilterOptions)
+
+	p := parsePaginator(in.PaginationOptions)
 
 	if in.SearchOptions == nil {
 		posts, total, err = l.svcCtx.PostModel.FindManyAndCount(l.ctx, filter, p, post.IdSorter)

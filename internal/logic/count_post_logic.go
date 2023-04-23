@@ -27,10 +27,7 @@ func (l *CountPostLogic) CountPost(in *pb.CountPostReq) (*pb.CountPostResp, erro
 	var total int64
 	var err error
 
-	filter := &post.FilterOptions{
-		OnlyUserId:   in.FilterOptions.OnlyUserId,
-		OnlyOfficial: in.FilterOptions.OnlyOfficial,
-	}
+	filter := parseFilter(in.FilterOptions)
 
 	if in.SearchOptions == nil {
 		total, err = l.svcCtx.PostModel.Count(l.ctx, filter)
