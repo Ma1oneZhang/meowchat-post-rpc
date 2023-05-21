@@ -7,7 +7,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 )
 
-func ConvertAllFieldsSearchQuery(in *pb.ListPostReq_AllFieldsKey) []types.Query {
+func ConvertAllFieldsSearchQuery(in *pb.SearchOptions_AllFieldsKey) []types.Query {
 	return []types.Query{{
 		MultiMatch: &types.MultiMatchQuery{
 			Query:  in.AllFieldsKey,
@@ -16,7 +16,7 @@ func ConvertAllFieldsSearchQuery(in *pb.ListPostReq_AllFieldsKey) []types.Query 
 	}
 }
 
-func ConvertMultiFieldsSearchQuery(in *pb.ListPostReq_MultiFieldsKey) []types.Query {
+func ConvertMultiFieldsSearchQuery(in *pb.SearchOptions_MultiFieldsKey) []types.Query {
 	var q []types.Query
 	if in.MultiFieldsKey.Title != nil {
 		q = append(q, types.Query{

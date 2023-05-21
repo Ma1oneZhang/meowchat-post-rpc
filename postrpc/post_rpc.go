@@ -13,20 +13,25 @@ import (
 )
 
 type (
-	CreatePostReq           = pb.CreatePostReq
-	CreatePostResp          = pb.CreatePostResp
-	DeletePostReq           = pb.DeletePostReq
-	DeletePostResp          = pb.DeletePostResp
-	ListPostReq             = pb.ListPostReq
-	ListPostReq_SearchField = pb.ListPostReq_SearchField
-	ListPostResp            = pb.ListPostResp
-	Post                    = pb.Post
-	RetrievePostReq         = pb.RetrievePostReq
-	RetrievePostResp        = pb.RetrievePostResp
-	SetOfficialReq          = pb.SetOfficialReq
-	SetOfficialResp         = pb.SetOfficialResp
-	UpdatePostReq           = pb.UpdatePostReq
-	UpdatePostResp          = pb.UpdatePostResp
+	CountPostReq      = pb.CountPostReq
+	CountPostResp     = pb.CountPostResp
+	CreatePostReq     = pb.CreatePostReq
+	CreatePostResp    = pb.CreatePostResp
+	DeletePostReq     = pb.DeletePostReq
+	DeletePostResp    = pb.DeletePostResp
+	FilterOptions     = pb.FilterOptions
+	ListPostReq       = pb.ListPostReq
+	ListPostResp      = pb.ListPostResp
+	PaginationOptions = pb.PaginationOptions
+	Post              = pb.Post
+	RetrievePostReq   = pb.RetrievePostReq
+	RetrievePostResp  = pb.RetrievePostResp
+	SearchField       = pb.SearchField
+	SearchOptions     = pb.SearchOptions
+	SetOfficialReq    = pb.SetOfficialReq
+	SetOfficialResp   = pb.SetOfficialResp
+	UpdatePostReq     = pb.UpdatePostReq
+	UpdatePostResp    = pb.UpdatePostResp
 
 	PostRpc interface {
 		CreatePost(ctx context.Context, in *CreatePostReq, opts ...grpc.CallOption) (*CreatePostResp, error)
@@ -34,6 +39,7 @@ type (
 		UpdatePost(ctx context.Context, in *UpdatePostReq, opts ...grpc.CallOption) (*UpdatePostResp, error)
 		DeletePost(ctx context.Context, in *DeletePostReq, opts ...grpc.CallOption) (*DeletePostResp, error)
 		ListPost(ctx context.Context, in *ListPostReq, opts ...grpc.CallOption) (*ListPostResp, error)
+		CountPost(ctx context.Context, in *CountPostReq, opts ...grpc.CallOption) (*CountPostResp, error)
 		SetOfficial(ctx context.Context, in *SetOfficialReq, opts ...grpc.CallOption) (*SetOfficialResp, error)
 	}
 
@@ -71,6 +77,11 @@ func (m *defaultPostRpc) DeletePost(ctx context.Context, in *DeletePostReq, opts
 func (m *defaultPostRpc) ListPost(ctx context.Context, in *ListPostReq, opts ...grpc.CallOption) (*ListPostResp, error) {
 	client := pb.NewPostRpcClient(m.cli.Conn())
 	return client.ListPost(ctx, in, opts...)
+}
+
+func (m *defaultPostRpc) CountPost(ctx context.Context, in *CountPostReq, opts ...grpc.CallOption) (*CountPostResp, error) {
+	client := pb.NewPostRpcClient(m.cli.Conn())
+	return client.CountPost(ctx, in, opts...)
 }
 
 func (m *defaultPostRpc) SetOfficial(ctx context.Context, in *SetOfficialReq, opts ...grpc.CallOption) (*SetOfficialResp, error) {

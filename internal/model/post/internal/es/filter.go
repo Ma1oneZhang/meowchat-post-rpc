@@ -1,6 +1,7 @@
 package es
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/xh-polaris/meowchat-post-rpc/internal/model/post/internal"
@@ -33,28 +34,30 @@ func (f *postFilter) toEsQuery() []types.Query {
 
 func (f *postFilter) CheckFlags() {
 	if f.MustFlags != nil && *f.MustFlags != 0 {
+		raw, _ := json.Marshal(*f.MustFlags)
 		f.q = append(f.q, types.Query{
 			//TODO 也许会造成潜在的性能风险
 			Script: &types.ScriptQuery{
 				Script: types.InlineScript{
 					Source: fmt.Sprintf("doc['%s'].size() != 0 && "+
 						"(doc['%s'].value & params.%s) == params.%s", internal.Flags, internal.Flags, internal.Flags, internal.Flags),
-					Params: map[string]any{
-						internal.Flags: *f.MustFlags,
+					Params: map[string]json.RawMessage{
+						internal.Flags: raw,
 					},
 				},
 			},
 		})
 	}
 	if f.MustNotFlags != nil && *f.MustNotFlags != 0 {
+		raw, _ := json.Marshal(*f.MustNotFlags)
 		f.q = append(f.q, types.Query{
 			//TODO 也许会造成潜在的性能风险
 			Script: &types.ScriptQuery{
 				Script: types.InlineScript{
 					Source: fmt.Sprintf("doc['%s'].size() == 0 || "+
 						"(doc['%s'].value & params.%s) == 0", internal.Flags, internal.Flags, internal.Flags),
-					Params: map[string]any{
-						internal.Flags: *f.MustFlags,
+					Params: map[string]json.RawMessage{
+						internal.Flags: raw,
 					},
 				},
 			},

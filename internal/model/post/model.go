@@ -19,7 +19,7 @@ type (
 )
 
 func NewModel(url, db string, c cache.CacheConf, ec config.ElasticsearchConf) Model {
-	return defaultModel{
+	return &defaultModel{
 		PostMongoModel: mongo.NewPostModel(url, db, c),
 		PostEsModel:    es.NewPostModel(db, ec, c),
 	}
